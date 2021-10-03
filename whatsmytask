@@ -1,0 +1,9 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use Cwd 'abs_path';
+my @dir = split '/', abs_path($0);
+pop @dir;
+chdir( join '/', @dir ) || die;
+system( "java", "-Duser.country=EN", "-Duser.language=us", '-cp',
+    'whatsmytask.jar', 'WhatsmyTask', @ARGV );

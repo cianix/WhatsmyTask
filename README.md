@@ -14,7 +14,19 @@ The program saves each post in a sqlite database. It's written in **Java** and u
  2. Rename the jar file to **whatsmytask.jar**
  3. Prepare the sqlite database
  4. *make*
- 5. Run program: "java -jar whatsmytask.jar" to run the program
+ 5. Run program: "java -cp whatsmytask.jar WhatsmyTask" to run the program
+
+
+## Run whatsmytask in Linux
+
+The **whatsmytask** script is a perl wrapper to run the **java** program.
+
+To create a symbolic link in */usr/local/bin* run the commands below as superuser:
+
+~~~~
+cd /usr/local/bin
+ln -s /path/to/whatsmytask
+~~~~
 
 
 ## Prepare sqlite database
