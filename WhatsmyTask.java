@@ -33,8 +33,8 @@ public class WhatsmyTask {
 
     private final static SimpleDateFormat ddmmmyyyy = new SimpleDateFormat("dd MMM yyyy");
     private final static SimpleDateFormat yyyymmdd = new SimpleDateFormat("yyyyMMdd");
-    private final static String cmd="WhatsmyTask" ;
-    private final static String version="2021.10.03" ;
+    private final static String WMT="WhatsmyTask" ;
+    private final static String version="2021.11.01" ;
 
     public WhatsmyTask () {
     }
@@ -43,10 +43,10 @@ public class WhatsmyTask {
     throws java.io.IOException {
 
 
-        System.out.println("==============================\n### " + cmd + " " + version + " ###\n==============================");
+        System.out.println("==============================\n### " + WMT + " " + version + " ###\n==============================");
 
         if ( args.length > 0 && args[0].equals( "-h" ) ) {
-            help();
+            help(WMT);
             return;
         }
 
@@ -56,24 +56,33 @@ public class WhatsmyTask {
             String url = "jdbc:sqlite:whatsmytask.sqlite";
             // create a connection to the database
             conn = DriverManager.getConnection(url);
-
+            // used by shell
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
             System.out.println( "----" );
-            if ( args.length == 0 ) {
-                jobList( conn, false );
-            } else {
-                if ( args[0].toUpperCase().equals("L") ) {
+            String cmd="";
+            String p1="";
+            String p2="";
+            if (args.length>0) cmd=args[0];
+            if (args.length>1) p1=args[1];
+            if (args.length>2) p2=args[2];
+            boolean shell=cmd.toUpperCase().equals("-I");
+
+            do {
+                if ( cmd.equals("") ) {
+                    jobList( conn, false );
+                } else if ( cmd.toUpperCase().equals("L") ) {
                     int llist = 5;
-                    if ( args.length > 1 && getLong(args[1])>0  ) llist = (int) getLong(args[1]);
+                    if ( getLong(p1)>0 ) llist = (int) getLong(p1);
                     lastModify( conn, llist );
-                } else if ( args[0].toUpperCase().equals("C") ) {
-                    if ( args.length > 1 )
-                        updateJob( conn, args[1], "priority=C"  );
-                    else
+                } else if ( cmd.toUpperCase().equals("C") ) {
+                    if ( p1.equals("") )
                         jobList( conn, true );
-                } else if ( args[0].toUpperCase().equals("S") ) {
-                    infoJOB( conn, args[1] );
-                } else if ( args[0].toUpperCase().equals("I") ) {
+                    else
+                        updateJob( conn, p1, "priority=C"  );
+                } else if ( cmd.toUpperCase().equals("S") && ! p1.equals("") ) {
+                    infoJOB( conn, p1 );
+                } else if ( cmd.toUpperCase().equals("I") ) {
                     System.out.println("INSERT A NEW JOB\n================\n");
 
                     String[] prioList = new String[] { "L", "N", "U" };
@@ -85,27 +94,41 @@ public class WhatsmyTask {
 
                     String deadline = "";
                     String priority = "";
-                    if ( args.length > 1  ) {
-                        mainpost = args[1];
-                        deadline ="01 Jan 1970";
-                        priority = "N";
-                    } else {
+                    if ( p1.equals("") ) {
                         deadline = readInput("==> Insert deadline (eg. 1 jan 2021):", new String[] {} );
                         priority = readInput("==> Priority ( 'U', 'N', 'L' ):", prioList );
+                    } else {
+                        mainpost = p1;
+                        deadline ="01 Jan 1970";
+                        priority = "N";
                     }
                     String ok = readInput("==> OK? (y/n)", sino);
-
-
                     newJob( conn, title, info, deadline, priority, mainpost );
-                } else if ( args[0].toUpperCase().equals("U") && args.length == 3 ) {
-                    updateJob( conn, args[1], args[2] );
-                }  else if ( args[0].toUpperCase().equals("D") && args.length == 2 ) {
-                    deleteJob( conn, args[1] );
+                } else if ( cmd.toUpperCase().equals("U") && ! p2.equals("") ) {
+                    updateJob( conn, p1, p2 );
+                }  else if ( cmd.toUpperCase().equals("D") && ! p1.equals("") ) {
+                    deleteJob( conn, p1 );
+                } else if( cmd.equals("exit") ) {
+                    shell=false;
+                    System.err.println( "BYE!" );
                 } else {
-                    help();
+                    if ( shell ) help( " >> " );
+                    else help( " - " + WMT );
                 }
-            }
-            System.out.println( "----" );
+
+                if ( shell ) {
+                    System.out.print( "myTask> " );
+                    String[] aa=split( br.readLine().trim(), ' ' );
+                    cmd="";
+                    p1="";
+                    p2="";
+                    if (aa.length>0) cmd=aa[0];
+                    if (aa.length>1) p1=aa[1];
+                    if (aa.length>2) p2=aa[2];
+                }
+                System.out.println( "----" );
+            } while( shell );
+
             conn.close();
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -171,7 +194,6 @@ public class WhatsmyTask {
         String sql = "SELECT postdate, title, deadline, priority FROM project WHERE priority<>'C' and postdate=mainpost ORDER BY priority DESC, deadline;";
         if ( showClosed )
             sql = "SELECT postdate, title, deadline, priority FROM project WHERE priority='C' and postdate=mainpost ORDER BY deadline DESC;";
-
 
         try {
             PreparedStatement pstmt  = conn.prepareStatement(sql);
@@ -360,28 +382,32 @@ public class WhatsmyTask {
     /**
      * PRINT HELP MESSAGE
      **/
-    private static void help() {
-        System.out.println("Print this help:");
-        System.out.println(" - " + cmd + " -h\n");
-        System.out.println("List open projects ordered by priority and deadline:");
-        System.out.println(" - " + cmd + "\n");
-        System.out.println("List open projects ordered by last modified posts:");
-        System.out.println(" - " + cmd + " L\n");
-        System.out.println("List closed projects:");
-        System.out.println(" - " + cmd + " C\n");
-        System.out.println("Insert a new project:");
-        System.out.println(" - " + cmd + " I\n");
-        System.out.println("Insert another job to the project");
-        System.out.println(" - " + cmd + " I <jobID>\n");
-        System.out.println("Show a project:");
-        System.out.println(" - " + cmd + " S <jobID>\n");
-        System.out.println("Update a project:");
-        System.out.println(" - " + cmd + " U <jobID> <field>=<string>\n");
-        System.out.println("     field is: title, info, deadline, priority ( 'U', 'N', 'L' )\n");
-        System.out.println("Close a project:");
-        System.out.println(" - " + cmd + " C <jobID>\n");
-        System.out.println("Delete a project:");
-        System.out.println(" - " + cmd + " D <jobID>\n");
+    private static void help( String cmd ) {
+        System.out.println( "Print this help:");
+        System.out.println( cmd + " -h\n");
+        System.out.println( "List open projects ordered by priority and deadline:");
+        System.out.println( cmd + "\n");
+        System.out.println( "List open projects ordered by last modified posts:");
+        System.out.println( cmd + " L\n");
+        System.out.println( "List closed projects:");
+        System.out.println( cmd + " C\n");
+        System.out.println( "Insert a new project:");
+        System.out.println( cmd + " I\n");
+        System.out.println( "Insert another job to the project");
+        System.out.println( cmd + " I <jobID>\n");
+        System.out.println( "Show a project:");
+        System.out.println( cmd + " S <jobID>\n");
+        System.out.println( "Update a project:");
+        System.out.println( cmd + " U <jobID> <field>=<string>\n");
+        System.out.println( "     field is: title, info, deadline, priority ( 'U', 'N', 'L' )\n");
+        System.out.println( "Close a project:");
+        System.out.println( cmd + " C <jobID>\n");
+        System.out.println( "Delete a project:");
+        System.out.println( cmd + " D <jobID>\n");
+        System.out.println( "Start the shell mode:");
+        System.out.println( cmd + "-I\n" );
+        System.out.println( "Exit from shell mode:");
+        System.out.println( cmd + "exit" );
     }
 
 
