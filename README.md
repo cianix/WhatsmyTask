@@ -50,40 +50,49 @@ title varchar(40) not null, info varchar(1000), deadline date not null, priority
 The program is very simple:
 
 ~~~~
-===================
-### WhatsmyTask ###
-===================
+==============================
+### WhatsmyTask 2021.11.02 ###
+==============================
 Print this help:
- - WhatsmyTask -h
+WhatsmyTask -h
 
 List open projects ordered by priority and deadline:
- - WhatsmyTask
+WhatsmyTask
 
 List open projects ordered by last modified posts:
- - WhatsmyTask L
+WhatsmyTask L
 
 List closed projects:
- - WhatsmyTask C
+WhatsmyTask C
+
+List post added during the last N days:
+WhatsmyTask W <days>
 
 Insert a new project:
- - WhatsmyTask I
+WhatsmyTask I
 
 Insert another job to the project
- - WhatsmyTask I <jobID>
+WhatsmyTask I <jobID>
 
 Show a project:
- - WhatsmyTask S <jobID>
+WhatsmyTask S <jobID>
 
 Update a project:
- - WhatsmyTask U <jobID> <field>=<string>
+WhatsmyTask U <jobID> <field>=<string>
 
      field is: title, info, deadline, priority ( 'U', 'N', 'L' )
 
 Close a project:
- - WhatsmyTask C <jobID>
+WhatsmyTask C <jobID>
 
 Delete a project:
- - WhatsmyTask D <jobID>
+WhatsmyTask D <jobID>
+
+Start the shell mode:
+WhatsmyTask -I
+
+Exit from shell mode:
+WhatsmyTask exit
 ~~~~
 
 ## License

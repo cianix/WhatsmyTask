@@ -34,7 +34,7 @@ public class WhatsmyTask {
     private final static SimpleDateFormat ddmmmyyyy = new SimpleDateFormat("dd MMM yyyy");
     private final static SimpleDateFormat yyyymmdd = new SimpleDateFormat("yyyyMMdd");
     private final static String WMT="WhatsmyTask" ;
-    private final static String version="2021.11.01" ;
+    private final static String version="2021.11.02" ;
 
     public WhatsmyTask () {
     }
@@ -106,7 +106,9 @@ public class WhatsmyTask {
                     newJob( conn, title, info, deadline, priority, mainpost );
                 } else if ( cmd.toUpperCase().equals("U") && ! p2.equals("") ) {
                     updateJob( conn, p1, p2 );
-                }  else if ( cmd.toUpperCase().equals("D") && ! p1.equals("") ) {
+                } else if ( cmd.toUpperCase().equals("W") && getLong( p1 )>0 ) {
+                    lastNdays( conn, getLong( p1 ) );
+                } else if ( cmd.toUpperCase().equals("D") && ! p1.equals("") ) {
                     deleteJob( conn, p1 );
                 } else if( cmd.equals("exit") ) {
                     shell=false;
@@ -218,6 +220,30 @@ public class WhatsmyTask {
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
+    }
+
+
+    /**
+     * RETURNS THE LIST OF MODIFIED PROJECTS IN LAST N DAYS
+     **/
+    private static void lastNdays( Connection conn, long days ) {
+        String sql= "SELECT a.postdate, b.title AS main, a.title, b.deadline, b.priority "+
+                    "FROM project a, project b WHERE b.postdate=a.mainpost AND  a.postdate > ? ORDER BY a.mainpost, a.postdate ;";
+
+        try {
+            long time = Instant.now().getEpochSecond();
+            time = time - 3600 * 24 * days;
+            PreparedStatement pstmt  = conn.prepareStatement(sql);
+            pstmt.setLong(1, time);
+            ResultSet rs  = pstmt.executeQuery();
+
+            while (rs.next()) {
+                printMainPost( rs.getLong("postdate"),  rs.getString("main") + ": " + rs.getString("title"), rs.getString( "deadline" ), rs.getString( "priority" ) );
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+
     }
 
 
@@ -391,6 +417,8 @@ public class WhatsmyTask {
         System.out.println( cmd + " L\n");
         System.out.println( "List closed projects:");
         System.out.println( cmd + " C\n");
+        System.out.println( "List post added during the last N days:");
+        System.out.println( cmd + " W <days>\n");
         System.out.println( "Insert a new project:");
         System.out.println( cmd + " I\n");
         System.out.println( "Insert another job to the project");
@@ -405,9 +433,9 @@ public class WhatsmyTask {
         System.out.println( "Delete a project:");
         System.out.println( cmd + " D <jobID>\n");
         System.out.println( "Start the shell mode:");
-        System.out.println( cmd + "-I\n" );
+        System.out.println( cmd + " -I\n" );
         System.out.println( "Exit from shell mode:");
-        System.out.println( cmd + "exit" );
+        System.out.println( cmd + " exit" );
     }
 
 
