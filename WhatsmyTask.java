@@ -34,7 +34,7 @@ public class WhatsmyTask {
     private final static SimpleDateFormat ddmmmyyyy = new SimpleDateFormat("dd MMM yyyy");
     private final static SimpleDateFormat yyyymmdd = new SimpleDateFormat("yyyyMMdd");
     private final static String WMT="WhatsmyTask" ;
-    private final static String version="2021.11.02" ;
+    private final static String version="2021.11.04" ;
 
     public WhatsmyTask () {
     }
@@ -82,32 +82,39 @@ public class WhatsmyTask {
                         updateJob( conn, p1, "priority=C"  );
                 } else if ( cmd.toUpperCase().equals("S") && ! p1.equals("") ) {
                     infoJOB( conn, p1 );
-                } else if ( cmd.toUpperCase().equals("I") ) {
-                    System.out.println("INSERT A NEW JOB\n================\n");
+                } else if ( cmd.toUpperCase().equals("I") || cmd.toUpperCase().equals("T") ) {
+                    if ( p1.equals("") || cmd.toUpperCase().equals("T") )
+                        System.out.println("INSERT A NEW JOB/TODO\n=====================\n");
+                    else
+                        System.out.println("UPDATE THIS JOB/TODO\n=====================\n");
 
-                    String[] prioList = new String[] { "L", "N", "U" };
+                    String[] prioList = new String[] { "L", "N", "U", "T" };
                     String[] sino = new String[] { "Y", "N" };
                     String mainpost="";
 
-                    String title = readInput( "==> Insert the title for the NEW (max 40 chars):", new String[] {} );
+                    String title = readInput( "==> Insert the title (max 40 chars):", new String[] {} );
                     String info= readInput("==> Insert informations (max 1000 chars):", new String[] {} );
 
                     String deadline = "";
                     String priority = "";
+
+                    if ( cmd.toUpperCase().equals("T") ) priority = "T";
                     if ( p1.equals("") ) {
                         deadline = readInput("==> Insert deadline (eg. 1 jan 2021):", new String[] {} );
-                        priority = readInput("==> Priority ( 'U', 'N', 'L' ):", prioList );
+                        if ( priority.equals("") ) priority = readInput("==> Priority ( 'U', 'N', 'L' ):", prioList );
                     } else {
                         mainpost = p1;
                         deadline ="01 Jan 1970";
-                        priority = "N";
+                        if ( priority.equals("") ) priority = "N";
                     }
                     String ok = readInput("==> OK? (y/n)", sino);
                     newJob( conn, title, info, deadline, priority, mainpost );
                 } else if ( cmd.toUpperCase().equals("U") && ! p2.equals("") ) {
                     updateJob( conn, p1, p2 );
                 } else if ( cmd.toUpperCase().equals("W") && getLong( p1 )>0 ) {
-                    lastNdays( conn, getLong( p1 ) );
+                    lastNdays( conn, getLong( p1 ), false );
+                } else if ( cmd.toUpperCase().equals("VT") ) {
+                    lastNdays( conn, 0, true );
                 } else if ( cmd.toUpperCase().equals("D") && ! p1.equals("") ) {
                     deleteJob( conn, p1 );
                 } else if( cmd.equals("exit") ) {
@@ -226,20 +233,46 @@ public class WhatsmyTask {
     /**
      * RETURNS THE LIST OF MODIFIED PROJECTS IN LAST N DAYS
      **/
-    private static void lastNdays( Connection conn, long days ) {
+    private static void lastNdays( Connection conn, long days, boolean todo ) {
         String sql= "SELECT a.postdate, b.title AS main, a.title, b.deadline, b.priority "+
-                    "FROM project a, project b WHERE b.postdate=a.mainpost AND  a.postdate > ? ORDER BY a.mainpost, a.postdate ;";
+                    "FROM project a, project b WHERE b.postdate=a.mainpost AND a.postdate > ? ORDER BY a.mainpost, a.postdate ;";
 
         try {
-            long time = Instant.now().getEpochSecond();
-            time = time - 3600 * 24 * days;
             PreparedStatement pstmt  = conn.prepareStatement(sql);
-            pstmt.setLong(1, time);
+            if ( todo ) {
+                pstmt.setLong(1, days);
+            } else {
+                long time = Instant.now().getEpochSecond();
+                time = time - 3600 * 24 * days;
+                pstmt.setLong(1, time);
+            }
             ResultSet rs  = pstmt.executeQuery();
 
+            String prio="";
+            long postdate=0;
+            String main="";
+            String title="";
+            String deadline="";
             while (rs.next()) {
-                printMainPost( rs.getLong("postdate"),  rs.getString("main") + ": " + rs.getString("title"), rs.getString( "deadline" ), rs.getString( "priority" ) );
+                prio=rs.getString( "priority" );
+
+                if (todo) {
+                    if ( postdate>0 && ! rs.getString("main").equals(main) ) {
+                        printMainPost( postdate,  main + ": " + title, deadline, "T" );
+                        postdate=0;
+                    }
+                    if ( prio.equals("T")) {
+                        postdate=rs.getLong("postdate");
+                        main=rs.getString("main");
+                        title=rs.getString("title");
+                        deadline=rs.getString( "deadline" );
+                    }
+                } else {
+                    printMainPost( rs.getLong("postdate"),  rs.getString("main") + ": " + rs.getString("title"), rs.getString( "deadline" ), prio );
+                }
             }
+            if ( postdate>0 && todo )
+                printMainPost( postdate,  main + ": " + title, deadline, prio );
         } catch (Exception e) {
             System.out.println(e.getMessage());
         }
@@ -423,6 +456,10 @@ public class WhatsmyTask {
         System.out.println( cmd + " I\n");
         System.out.println( "Insert another job to the project");
         System.out.println( cmd + " I <jobID>\n");
+        System.out.println( "Insert a new TODO or a TODO to the project");
+        System.out.println( cmd + " T [jobID]\n");
+        System.out.println( "View the TODO List");
+        System.out.println( cmd + " VT\n");
         System.out.println( "Show a project:");
         System.out.println( cmd + " S <jobID>\n");
         System.out.println( "Update a project:");

@@ -51,7 +51,7 @@ The program is very simple:
 
 ~~~~
 ==============================
-### WhatsmyTask 2021.11.02 ###
+### WhatsmyTask 2021.11.04 ###
 ==============================
 Print this help:
 WhatsmyTask -h
@@ -73,6 +73,12 @@ WhatsmyTask I
 
 Insert another job to the project
 WhatsmyTask I <jobID>
+
+Insert a new TODO or a TODO to the project
+WhatsmyTask T [jobID]
+
+View the TODO List
+WhatsmyTask VT
 
 Show a project:
 WhatsmyTask S <jobID>
